@@ -21,7 +21,7 @@ Selected carpet/wood/grass/snow footsteps and soft, wooden, glass, bell, and pla
 
 ## Voice
 
-Original game dialogue synthesized with Microsoft `en-US-AriaNeural`, rate `+10%`, using the user's standing authorization for Microsoft TTS. The MP3s are bundled. Playback never sends player data to Microsoft.
+Original game dialogue (50 clips) synthesized with Microsoft `en-US-AriaNeural`, rate `+10%`, using the user's standing authorization for Microsoft TTS. The MP3s are bundled. Playback never sends player data to Microsoft.
 
 ## Font
 
@@ -33,4 +33,4 @@ License included in `assets/Nunito-OFL.txt`.
 
 ## Art
 
-Original character and hospital art is drawn from canvas primitives in `draw.js`. Small system emoji are rendered by the player's browser/operating system.
+Original character and hospital art is drawn from canvas primitives in `draw.js`. All icons are original vector drawings in `icons.js`; the game does not use system emoji, so pictures look the same on every device. The home-screen app icons (`icon-180.png`, `icon-192.png`, `icon-512.png`) are rendered from the original `icon.svg`.
