@@ -335,7 +335,6 @@ footer button {
 }
 .menu-mode #game-wrap {
   opacity: 0.22;
-  filter: blur(2px);
   pointer-events: none;
 }
 .menu-mode #screen {
@@ -539,8 +538,7 @@ footer button {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: #254b435c;
-  backdrop-filter: blur(5px);
+  background: #254b4378;
   z-index: 30;
   display: flex;
   align-items: center;
@@ -1326,4 +1324,98 @@ body.reduced *:before {
   .tutorial-skip-area button {
     min-height: 44px;
   }
+}
+
+/* Play mode: the whole clinic, the HUD and the bag fit on one tablet screen. */
+body.playing .brandbar,
+body.playing footer {
+  display: none;
+}
+body.playing #app {
+  padding-top: 12px;
+}
+body.playing #game-wrap {
+  width: min(100%, max(640px, calc((100dvh - var(--play-chrome, 170px) - 40px) * 1.579)));
+  margin-inline: auto;
+}
+body.playing #hud {
+  padding-bottom: 10px;
+}
+body.playing #bottom {
+  padding: 10px;
+}
+.hud-icon {
+  font-size: 17px;
+  padding: 7px 11px;
+}
+
+/* Speaker buttons replay a spoken instruction for children who cannot read yet. */
+.say-again {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid #dfe9dc;
+  background: #fff;
+  font-size: 18px;
+  line-height: 1;
+  vertical-align: middle;
+  box-shadow: 0 3px 0 #e0e9e2;
+}
+#game-overlay .walkhint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  font-size: 18px;
+  padding: 8px 10px 8px 22px;
+}
+.patient-line .say-again {
+  margin-left: 6px;
+  width: 34px;
+  height: 34px;
+  font-size: 15px;
+}
+.modal-head .mini-say {
+  margin-left: auto;
+}
+.modal-head .mini-say + .close {
+  margin-left: 10px;
+}
+
+@media (max-width: 600px) {
+  body.playing #game-wrap {
+    width: 100%;
+  }
+  #game-overlay .walkhint {
+    font-size: 13px;
+    padding: 5px 6px 5px 12px;
+  }
+  #game-overlay .walkhint .say-again {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    font-size: 14px;
+  }
+}
+
+/* Drawn icons (icons.js) sit on the text line like an emoji did. */
+.icon {
+  display: inline-block;
+  vertical-align: -0.22em;
+  flex-shrink: 0;
+}
+.level-card .level-icon,
+.sticker b,
+.result .big-icon {
+  line-height: 1;
+}
+.icon-button .icon,
+.say-again .icon,
+.hud-icon .icon {
+  vertical-align: middle;
+}
+.mini-target .icon {
+  pointer-events: none;
 }

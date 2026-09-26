@@ -58,6 +58,9 @@ with sync_playwright() as p:
  phone.on('pageerror',lambda e:errors.append(str(e)))
  phone.goto('http://localhost:8765');phone.get_by_role('button',name='Let’s play').tap();phone.locator('[data-level="0"]').tap();phone.wait_for_timeout(600)
  assert not phone.evaluate('document.documentElement.scrollWidth>innerWidth')
+ # The thumb pad is off by default (tap-to-walk). Turn it on in Settings.
+ assert not phone.locator('#joystick').is_visible()
+ phone.get_by_role('button',name='Settings',exact=True).tap();phone.locator('#opt-joystick').check();phone.locator('#options-done').tap()
  assert phone.locator('#joystick').is_visible()
  left_before=phone.locator('[data-object="patient-0"]').evaluate('(e)=>parseFloat(e.style.left)')
  joy=phone.locator('#joystick').bounding_box();cdp=phone.context.new_cdp_session(phone)

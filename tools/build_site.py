@@ -18,7 +18,17 @@ for name in (
     "data.js",
     "draw.js",
     "minigames.js",
+    "icons.js",
+    "pwa.js",
+    "sw.js",
+    "manifest.webmanifest",
+    "precache.json",
+    "icon-180.png",
+    "icon-192.png",
+    "icon-512.png",
 ):
-    copy2(root / name, out / name)
+    src = root / name
+    if src.exists():
+        copy2(src, out / name)
 copytree(root / "assets", out / "assets")
 print(f"Staged {sum(1 for p in out.rglob('*') if p.is_file())} game files in {out}")

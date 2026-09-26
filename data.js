@@ -1,17 +1,17 @@
 export const ITEMS = {
-  fever: { name: 'Fever medicine', icon: '☀️', color: '#f6b94c', symbol: 'Sun' },
-  allergy: { name: 'Allergy medicine', icon: '🌼', color: '#a9cc73', symbol: 'Flower' },
-  cough: { name: 'Cough medicine', icon: '☁️', color: '#7fbddd', symbol: 'Cloud' },
-  antiseptic: { name: 'Cleaning lotion', icon: '🧴', color: '#b8a2da', symbol: 'Drop' },
-  gauze: { name: 'Gauze & bandage', icon: '🩹', color: '#ecaa83', symbol: 'Bandage' },
-  ice: { name: 'Ice pack', icon: '🧊', color: '#8bd8e8', symbol: 'Snowflake' },
-  water: { name: 'Water', icon: '🥤', color: '#8fc7e2', symbol: 'Cup' },
-  toy: { name: 'Teddy bear', icon: '🧸', color: '#cc956a', symbol: 'Teddy' },
+  fever: { name: 'Fever medicine', icon: 'sun', color: '#f6b94c', symbol: 'Sun' },
+  allergy: { name: 'Allergy medicine', icon: 'flower', color: '#a9cc73', symbol: 'Flower' },
+  cough: { name: 'Cough medicine', icon: 'cloud', color: '#7fbddd', symbol: 'Cloud' },
+  antiseptic: { name: 'Cleaning lotion', icon: 'lotion', color: '#b8a2da', symbol: 'Bottle' },
+  gauze: { name: 'Gauze & bandage', icon: 'bandage', color: '#ecaa83', symbol: 'Bandage' },
+  ice: { name: 'Ice pack', icon: 'ice', color: '#8bd8e8', symbol: 'Ice cube' },
+  water: { name: 'Water', icon: 'cup', color: '#8fc7e2', symbol: 'Cup' },
+  toy: { name: 'Teddy bear', icon: 'teddy', color: '#cc956a', symbol: 'Teddy' },
 };
 export const CONDITIONS = {
   fever: {
     name: 'Feeling warm',
-    symptom: '🌡️',
+    symptom: 'thermometer',
     line: 'I feel so warm and sleepy.',
     exam: ['temperature'],
     steps: [
@@ -21,7 +21,7 @@ export const CONDITIONS = {
   },
   allergy: {
     name: 'The sneezies',
-    symptom: '🤧',
+    symptom: 'sneeze',
     line: 'Achoo! My nose is so tickly.',
     exam: ['temperature', 'listen'],
     steps: [
@@ -31,7 +31,7 @@ export const CONDITIONS = {
   },
   cough: {
     name: 'A tickly cough',
-    symptom: '☁️',
+    symptom: 'cloud',
     line: 'My cough is keeping me awake.',
     exam: ['listen'],
     steps: [
@@ -41,7 +41,7 @@ export const CONDITIONS = {
   },
   scrape: {
     name: 'A little knee scrape',
-    symptom: '🩹',
+    symptom: 'bandage',
     line: 'I fell over while playing.',
     exam: ['inspect'],
     steps: [
@@ -51,14 +51,14 @@ export const CONDITIONS = {
   },
   bruise: {
     name: 'A small bump',
-    symptom: '🤕',
+    symptom: 'bump',
     line: 'Oops! I bumped my knee.',
     exam: ['inspect'],
     steps: [{ game: 'ice', item: 'ice', label: 'Hold the cool ice pack' }],
   },
   arm: {
     name: 'An arm that needs care',
-    symptom: '💪',
+    symptom: 'arm',
     line: 'My arm feels a little sore.',
     exam: ['inspect'],
     steps: [
@@ -130,8 +130,8 @@ export const LEVELS = [
   {
     name: 'Hello, Doctor!',
     subtitle: 'Your first little patient',
-    icon: '👋',
-    sticker: '🌈',
+    icon: 'wave',
+    sticker: 'rainbow',
     capacity: 1,
     duration: 300,
     schedule: [{ person: 0, condition: 'fever', at: 0 }],
@@ -139,8 +139,8 @@ export const LEVELS = [
   {
     name: 'First Day',
     subtitle: 'A warm welcome',
-    icon: '☀️',
-    sticker: '☀️',
+    icon: 'sun',
+    sticker: 'sun',
     capacity: 2,
     duration: 360,
     schedule: [
@@ -151,8 +151,8 @@ export const LEVELS = [
   {
     name: 'Achoo!',
     subtitle: 'Listen, care, feel better',
-    icon: '🌼',
-    sticker: '🌼',
+    icon: 'flower',
+    sticker: 'flower',
     capacity: 3,
     duration: 480,
     schedule: [
@@ -164,8 +164,8 @@ export const LEVELS = [
   {
     name: 'Ouch!',
     subtitle: 'Little bumps. Lots of care.',
-    icon: '🩹',
-    sticker: '🩹',
+    icon: 'bandage',
+    sticker: 'bandage',
     capacity: 3,
     duration: 540,
     schedule: [
@@ -177,8 +177,8 @@ export const LEVELS = [
   {
     name: 'Busy Clinic',
     subtitle: 'A little teamwork helps',
-    icon: '🏥',
-    sticker: '🧸',
+    icon: 'hospital',
+    sticker: 'teddy',
     capacity: 4,
     duration: 600,
     schedule: [
@@ -191,8 +191,8 @@ export const LEVELS = [
   {
     name: 'Wheels Up!',
     subtitle: 'Let’s go on a caring adventure',
-    icon: '🦽',
-    sticker: '🏅',
+    icon: 'wheelchair',
+    sticker: 'medal',
     capacity: 4,
     duration: 720,
     schedule: [
@@ -215,12 +215,12 @@ export const BEDS = [
   { x: 680, y: 280 },
 ];
 export const STATIONS = [
-  { id: 'supplies', x: 1000, y: 290, tx: 1000, ty: 350, label: 'Supply cupboard', icon: '🧴' },
-  { id: 'nurse', x: 293, y: 622, tx: 320, ty: 666, label: 'Ask Nurse Lily', icon: '💬' },
-  { id: 'sink', x: 790, y: 350, tx: 770, ty: 375, label: 'Wash hands', icon: '🫧' },
-  { id: 'chair', x: 480, y: 480, tx: 480, ty: 510, label: 'Take wheelchair', icon: '🦽' },
-  { id: 'procedure', x: 595, y: 617, tx: 595, ty: 635, label: 'Procedure room', icon: '✨' },
-  { id: 'recovery', x: 997, y: 621, tx: 997, ty: 656, label: 'Recovery corner', icon: '💛' },
+  { id: 'supplies', x: 1000, y: 290, tx: 1000, ty: 350, label: 'Supply cupboard', icon: 'lotion' },
+  { id: 'nurse', x: 293, y: 622, tx: 320, ty: 666, label: 'Ask Nurse Lily', icon: 'chat' },
+  { id: 'sink', x: 790, y: 350, tx: 770, ty: 375, label: 'Wash hands', icon: 'soap' },
+  { id: 'chair', x: 480, y: 480, tx: 480, ty: 510, label: 'Take wheelchair', icon: 'wheelchair' },
+  { id: 'procedure', x: 595, y: 617, tx: 595, ty: 635, label: 'Procedure room', icon: 'sparkles' },
+  { id: 'recovery', x: 997, y: 621, tx: 997, ty: 656, label: 'Recovery corner', icon: 'heart' },
 ];
 export const DEFAULT_SETTINGS = {
   music: 0.28,
@@ -231,6 +231,7 @@ export const DEFAULT_SETTINGS = {
   reduced: false,
   speed: 1,
   capacity: 3,
+  joystick: false,
   needleFree: true,
 };
 export function readSave(storage = localStorage) {

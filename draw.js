@@ -1,4 +1,5 @@
-import { BEDS, CONDITIONS } from './data.js';
+import { BEDS, CONDITIONS, ITEMS } from './data.js';
+import { drawIcon } from './icons.js';
 export const C = { ink: '#36524b', green: '#3b9679', floor: '#ecf2de' };
 export function round(ctx, x, y, w, h, r, fill, stroke) {
   ctx.beginPath();
@@ -644,8 +645,8 @@ function room(ctx, x, y, w, h, fill, name, icon, sub) {
       0.7
     );
   ctx.restore();
-  round(ctx, x + 18, y + 15, Math.min(w - 36, name.length * 9 + 78), 36, 12, '#fffdf8e8');
-  text(ctx, icon + '  ' + name, x + 34, y + 34, 15, C.ink, 'left');
+  round(ctx, x + 18, y + 13, Math.min(w - 36, name.length * 11 + 80), 40, 12, '#fffdf8e8');
+  text(ctx, icon + '  ' + name, x + 34, y + 33, 17, C.ink, 'left');
   if (sub) text(ctx, sub, x + w - 25, y + 35, 11, '#8aa092', 'right');
 }
 function bed(ctx, x, y, num) {
@@ -808,7 +809,7 @@ export function drawHospital(ctx, game, time, view) {
     '#d4dcbd',
     3
   );
-  const icons = ['☀️', '🌼', '☁️', '🧴', '🩹', '🧊'];
+  const icons = ['sun', 'flower', 'cloud', 'lotion', 'bandage', 'ice'];
   icons.forEach((ic, i) => {
     const x = 924 + (i % 3) * 83,
       y = i < 3 ? 213 : 270;
@@ -821,16 +822,16 @@ export function drawHospital(ctx, game, time, view) {
       7,
       ['#f7d186', '#c9dda7', '#b8dbea', '#d6c6e7', '#ebc7ad', '#bee5e6'][i]
     );
-    text(ctx, ic, x, y, 21);
+    drawIcon(ctx, ic, x, y - 2, 28);
   });
   round(ctx, 920, 333, 186, 32, 10, '#fffcf0');
-  text(ctx, 'Tap to choose supplies', 1013, 350, 11, '#85a077');
+  text(ctx, 'Tap to choose supplies', 1013, 350, 13, '#85a077');
   plant(ctx, 1153, 379, 0.77);
   // Reception: books, fish, plant and friendly nurse.
   round(ctx, 48, 597, 92, 47, 9, '#9ac7bc', '#78aba0');
   round(ctx, 53, 601, 82, 34, 6, '#cce7da');
-  text(ctx, '🐠', 82, 618, 24);
-  text(ctx, '🐟', 113, 613, 16);
+  drawIcon(ctx, 'fish', 82, 618, 26);
+  drawIcon(ctx, 'fish', 113, 612, 18);
   round(ctx, 82, 633, 160, 57, 15, '#d8b98c');
   round(ctx, 77, 630, 170, 18, 7, '#f5e0b8');
   round(ctx, 169, 610, 45, 24, 5, '#79988c');
@@ -838,7 +839,7 @@ export function drawHospital(ctx, game, time, view) {
   text(ctx, 'HELLO!', 166, 669, 12, '#8c7956');
   plant(ctx, 48, 700, 0.9);
   person(ctx, 293, 647, { nurse: true, hair: '#544d41', skin: '#e8b68b', time });
-  text(ctx, 'Nurse Lily', 295, 699, 11, '#869978');
+  text(ctx, 'Nurse Lily', 295, 699, 14, '#6f8a68');
   // Procedure and recovery furniture.
   round(ctx, 483, 593, 206, 99, 18, '#dec6a4');
   round(ctx, 490, 588, 192, 91, 15, '#fffaf0');
@@ -883,26 +884,21 @@ export function drawHospital(ctx, game, time, view) {
         pose: 'bed',
         angle: p.location === 'ward' ? 0 : -Math.PI / 2,
       });
-      round(ctx, at.x - 65, at.y - 120, 130, 40, 13, '#fffef8', '#d6e3d2');
+      round(ctx, at.x - 75, at.y - 124, 150, 46, 14, '#fffef8', '#d6e3d2');
+      const care = CONDITIONS[p.condition],
+        next = game.next(p);
       const bubble =
-        p.exam < CONDITIONS[p.condition].exam.length
-          ? CONDITIONS[p.condition].symptom
-          : p.step >= CONDITIONS[p.condition].steps.length
-            ? '♡'
-            : game.next(p).game === 'transport'
-              ? '🦽'
-              : game.next(p).item
-                ? {
-                    fever: '☀️',
-                    allergy: '🌼',
-                    cough: '☁️',
-                    antiseptic: '🧴',
-                    gauze: '🩹',
-                    ice: '🧊',
-                  }[game.next(p).item]
-                : '✚';
-      text(ctx, bubble, at.x - 41, at.y - 100, 22);
-      text(ctx, p.name, at.x + 11, at.y - 100, 12);
+        p.exam < care.exam.length
+          ? care.symptom
+          : p.step >= care.steps.length
+            ? 'heart'
+            : next.game === 'transport'
+              ? 'wheelchair'
+              : next.item
+                ? ITEMS[next.item].icon
+                : 'sparkles';
+      drawIcon(ctx, bubble, at.x - 47, at.y - 101, 32);
+      text(ctx, p.name, at.x + 14, at.y - 101, 16);
       text(
         ctx,
         '♥'.repeat(Math.ceil(p.happiness)) + '♡'.repeat(3 - Math.ceil(p.happiness)),
@@ -933,8 +929,8 @@ export function drawHospital(ctx, game, time, view) {
         happy: d.pose === 'celebrate',
       });
     }
-    round(ctx, d.x - 42, d.y + 22, 84, 23, 9, '#fffef6e8');
-    text(ctx, 'Dr. Ayden', d.x, d.y + 34, 11, '#57917b');
+    round(ctx, d.x - 50, d.y + 21, 100, 27, 10, '#fffef6e8');
+    text(ctx, 'Dr. Ayden', d.x, d.y + 35, 14, '#3f7d66');
   } else {
     wheelchair(ctx, 480, 481);
     person(ctx, 380, 487, { doctor: true, time });

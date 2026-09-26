@@ -53,6 +53,9 @@ export class AudioManager {
     a.onerror = a.onended;
     a.play().catch(a.onended);
   }
+  busy() {
+    return !!this.voice && !this.voice.paused;
+  }
   praise() {
     this.say(['good-job', 'amazing', 'great-care', 'superstar', 'well-done'][this.phrases++ % 5]);
   }

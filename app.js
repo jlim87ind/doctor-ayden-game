@@ -3,6 +3,7 @@ import { GameModel, findPath, walkable } from './core.js';
 import { drawHospital, hero, person, crisp } from './draw.js';
 import { AudioManager } from './audio.js';
 import { MiniGame } from './minigames.js';
+import { iconSVG } from './icons.js';
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app'),
@@ -26,7 +27,14 @@ let save = readSave(),
   hudTime = 0,
   footTime = 0,
   toastTimer = 0,
-  focusBefore = null;
+  focusBefore = null,
+  guideKey = '',
+  guideVoice = null,
+  guidePending = null,
+  lastSaid = { name: '', at: -99 },
+  frame = 0;
+// Drawn icons look the same on every device, unlike emoji.
+const ic = (name, size = 22) => iconSVG(name, { size });
 const stars = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
 function persist() {
   try {
@@ -36,7 +44,7 @@ function persist() {
   }
 }
 function toast(message) {
-  $('#toast').textContent = message;
+  $('#toast').innerHTML = message;
   $('#toast').classList.add('visible');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 3500);
@@ -54,12 +62,18 @@ function confetti() {
     setTimeout(() => c.remove(), 4000);
   }
 }
+// Speak a line unless the same line was just spoken. Pre-readers rely on these voice prompts.
+function say(name, gap = 6) {
+  if (!name || (lastSaid.name === name && clock - lastSaid.at < gap)) return;
+  lastSaid = { name, at: clock };
+  audio.say(name);
+}
 function bind(selector, event, fn) {
   $(selector)?.addEventListener(event, fn);
 }
 function updateSound() {
   document.body.classList.toggle('reduced', settings.reduced);
-  $('#sound').textContent = settings.muted ? '♩' : '♫';
+  $('#sound').innerHTML = ic(settings.muted ? 'speaker-off' : 'speaker', 22);
   $('#sound').setAttribute('aria-label', settings.muted ? 'Unmute sound' : 'Mute sound');
   audio.apply();
 }
@@ -114,6 +128,7 @@ function switchScreen(name) {
   game = null;
   mode = name;
   app.classList.add('menu-mode');
+  document.body.classList.remove('playing');
   $('#hud').hidden = true;
   $('#bottom').hidden = true;
   $('#touch-controls').hidden = true;
@@ -137,7 +152,7 @@ function home() {
   bind('#how', 'click', help);
 }
 function levels() {
-  screen.innerHTML = `<section class="level-screen"><div class="screen-heading"><div><div class="eyebrow">ONE KIND LITTLE ADVENTURE AT A TIME</div><h1>Your clinic days</h1><p>Help your patients. Collect a sticker. Make someone smile.</p></div><button class="secondary back" id="back">← Back</button></div><div class="tutorial-choice"><span>The tutorial is optional. Come back any time.</span><button class="secondary small" id="skip-intro">Skip tutorial → Day 1</button></div><div class="level-grid">${LEVELS.map((l, i) => `<button class="level-card ${save.unlocked === i ? 'current' : ''}" data-level="${i}" ${i > save.unlocked ? 'disabled' : ''}><span class="level-number">${i === 0 ? 'OPTIONAL TUTORIAL' : 'DAY ' + i} ${i > save.unlocked ? '🔒' : ''}</span><span class="level-icon">${l.icon}</span><h3>${l.name}</h3><p>${l.subtitle}</p><span class="stars">${save.results[i] ? stars(save.results[i].stars) : i > save.unlocked ? '🔒' : '☆☆☆'}</span></button>`).join('')}</div></section>`;
+  screen.innerHTML = `<section class="level-screen"><div class="screen-heading"><div><div class="eyebrow">ONE KIND LITTLE ADVENTURE AT A TIME</div><h1>Your clinic days</h1><p>Help your patients. Collect a sticker. Make someone smile.</p></div><button class="secondary back" id="back">← Back</button></div><div class="tutorial-choice"><span>The tutorial is optional. Come back any time.</span><button class="secondary small" id="skip-intro">Skip tutorial → Day 1</button></div><div class="level-grid">${LEVELS.map((l, i) => `<button class="level-card ${save.unlocked === i ? 'current' : ''}" data-level="${i}" ${i > save.unlocked ? 'disabled' : ''}><span class="level-number">${i === 0 ? 'OPTIONAL TUTORIAL' : 'DAY ' + i} ${i > save.unlocked ? ic('lock', 14) : ''}</span><span class="level-icon">${ic(l.icon, 48)}</span><h3>${l.name}</h3><p>${l.subtitle}</p><span class="stars">${save.results[i] ? stars(save.results[i].stars) : i > save.unlocked ? ic('lock', 22) : '☆☆☆'}</span></button>`).join('')}</div></section>`;
   bind('#back', 'click', () => switchScreen('menu'));
   bind('#skip-intro', 'click', skipTutorial);
   screen
@@ -145,13 +160,13 @@ function levels() {
     .forEach((b) => b.addEventListener('click', () => startLevel(Number(b.dataset.level))));
 }
 function stickers() {
-  screen.innerHTML = `<section class="sticker-screen"><div class="screen-heading"><div><div class="eyebrow">YOUR LITTLE BOOK OF BIG KINDNESS</div><h1>Sticker book <span style="color:#a6b790;font-size:20px">${Object.keys(save.results).length} / 6</span></h1><p>Every finished clinic day earns a happy little memory.</p></div><button class="secondary back" id="back">← Back</button></div><div class="sticker-grid">${LEVELS.map((l, i) => `<div class="sticker ${save.results[i] ? '' : 'locked'}"><b>${l.sticker}</b><h3>${save.results[i] ? l.name : 'Finish ' + (i ? 'Day ' + i : 'the tutorial')}</h3><span class="stars">${save.results[i] ? stars(save.results[i].stars) : '☆☆☆'}</span></div>`).join('')}</div></section>`;
+  screen.innerHTML = `<section class="sticker-screen"><div class="screen-heading"><div><div class="eyebrow">YOUR LITTLE BOOK OF BIG KINDNESS</div><h1>Sticker book <span style="color:#a6b790;font-size:20px">${Object.keys(save.results).length} / 6</span></h1><p>Every finished clinic day earns a happy little memory.</p></div><button class="secondary back" id="back">← Back</button></div><div class="sticker-grid">${LEVELS.map((l, i) => `<div class="sticker ${save.results[i] ? '' : 'locked'}"><b>${ic(l.sticker, 72)}</b><h3>${save.results[i] ? l.name : 'Finish ' + (i ? 'Day ' + i : 'the tutorial')}</h3><span class="stars">${save.results[i] ? stars(save.results[i].stars) : '☆☆☆'}</span></div>`).join('')}</div></section>`;
   bind('#back', 'click', () => switchScreen('menu'));
 }
 function help() {
   showModal(
     'You’re the doctor!',
-    '<p>Help each patient through a checkup, collect their supplies, and help them feel better.</p><div class="settings-row"><span>👆 Tap a patient or room</span><b>Ayden walks there</b></div><div class="settings-row"><span>⌨️ Arrow keys / WASD</span><b>Walk</b></div><div class="settings-row"><span>✋ E or Space</span><b>Help / interact</b></div><div class="settings-row"><span>📋 C or Tab</span><b>Patient clipboard</b></div><div class="settings-row"><span>⏸ Escape / P</span><b>Pause</b></div><p>On a tablet, use the thumb pad or tap where you want to go. Nurse Lily always has a helpful hint. There is no penalty for asking!</p><button class="primary" id="got-it">Got it! ♡</button>'
+    `<p>Help each patient through a checkup, collect their supplies, and help them feel better.</p><div class="settings-row"><span>${ic('tap')} Tap a patient or room</span><b>Ayden walks there</b></div><div class="settings-row"><span>${ic('keyboard')} Arrow keys / WASD</span><b>Walk</b></div><div class="settings-row"><span>${ic('hand')} E or Space</span><b>Help / interact</b></div><div class="settings-row"><span>${ic('clipboard')} C or Tab</span><b>Patient clipboard</b></div><div class="settings-row"><span>${ic('pause')} Escape / P</span><b>Pause</b></div><p>On a tablet, tap where you want to go. You can turn on a thumb pad in Settings. Nurse Lily always has a helpful hint. There is no penalty for asking!</p><button class="primary" id="got-it">Got it! ♡</button>`
   );
   bind('#got-it', 'click', dismiss);
 }
@@ -162,10 +177,13 @@ function startLevel(index) {
   game.chairPosition = { x: 480, y: 480 };
   mode = 'playing';
   app.classList.remove('menu-mode');
+  document.body.classList.add('playing');
   screen.innerHTML = '';
   $('#hud').hidden = false;
   $('#bottom').hidden = false;
-  $('#touch-controls').hidden = false;
+  $('#touch-controls').hidden = !settings.joystick;
+  guideKey = '';
+  guidePending = null;
   audio.music('hospital');
   audio.say(index === 0 ? 'tutorial-patient' : 'next-patient');
   refresh();
@@ -175,11 +193,13 @@ function refresh() {
   if (!game) return;
   const g = game;
   $('#hud').innerHTML =
-    `<div class="hud-title"><div class="eyebrow">${g.levelIndex ? 'CLINIC DAY ' + g.levelIndex : 'YOUR FIRST ADVENTURE'}</div><h2>${g.level.icon} ${g.level.name}</h2></div><div class="hud-chip"><span>♡</span> ${g.helped} / ${g.level.schedule.length} <small>helped</small><span class="progress-track"><i style="width:${(g.helped / g.level.schedule.length) * 100}%"></i></span></div><div class="hud-chip">✦ <span id="score">${g.score.toLocaleString()}</span></div><div class="hud-chip" id="clinic-time">${settings.patience ? formatTime(Math.max(0, g.level.duration - g.time)) : '☀ No rush'}</div>${g.levelIndex === 0 ? '<button id="skip-tutorial" class="secondary small">Skip tutorial →</button>' : ''}<button id="pause" class="secondary small" aria-label="Pause game">Ⅱ Pause</button>`;
+    `<div class="hud-title"><div class="eyebrow">${g.levelIndex ? 'CLINIC DAY ' + g.levelIndex : 'YOUR FIRST ADVENTURE'}</div><h2>${ic(g.level.icon, 28)} ${g.level.name}</h2></div><div class="hud-chip"><span>♡</span> ${g.helped} / ${g.level.schedule.length} <small>helped</small><span class="progress-track"><i style="width:${(g.helped / g.level.schedule.length) * 100}%"></i></span></div><div class="hud-chip">✦ <span id="score">${g.score.toLocaleString()}</span></div><div class="hud-chip" id="clinic-time">${settings.patience ? formatTime(Math.max(0, g.level.duration - g.time)) : '☀ No rush'}</div>${g.levelIndex === 0 ? '<button id="skip-tutorial" class="secondary small">Skip tutorial →</button>' : ''}<button id="hud-settings" class="secondary small hud-icon" aria-label="Settings" title="Settings">${ic('gear', 20)}</button><button id="hud-sound" class="secondary small hud-icon" aria-label="${settings.muted ? 'Unmute sound' : 'Mute sound'}" title="Sound on / off">${ic(settings.muted ? 'speaker-off' : 'speaker', 20)}</button><button id="pause" class="secondary small" aria-label="Pause game">Ⅱ Pause</button>`;
   bind('#pause', 'click', pause);
+  bind('#hud-sound', 'click', toggleSound);
+  bind('#hud-settings', 'click', options);
   bind('#skip-tutorial', 'click', skipTutorial);
   $('#bottom').innerHTML =
-    `<span class="bag-label">👜 Your bag <small>Tap an item<br>to put it back</small></span>${Array.from({ length: Number(settings.capacity) }, (_, i) => `<button class="slot ${g.inventory[i] ? 'filled' : ''}" data-slot="${i}" aria-label="${g.inventory[i] ? 'Return ' + ITEMS[g.inventory[i]].name : 'Empty bag slot'}" title="${g.inventory[i] ? 'Return ' + ITEMS[g.inventory[i]].name : 'Empty bag slot'}">${g.inventory[i] ? ITEMS[g.inventory[i]].icon : '·'}${g.inventory[i] ? '<small>×</small>' : ''}</button>`).join('')}<span class="bottom-spacer"></span><span class="keyhint"><kbd>W A S D</kbd> move &nbsp; <kbd>E</kbd> help</span><button class="secondary" id="clipboard">📋 Patients</button><button class="secondary" id="ask-nurse">💬 Ask nurse</button>`;
+    `<span class="bag-label">${ic('bag', 26)} Your bag <small>Tap an item<br>to put it back</small></span>${Array.from({ length: Number(settings.capacity) }, (_, i) => `<button class="slot ${g.inventory[i] ? 'filled' : ''}" data-slot="${i}" aria-label="${g.inventory[i] ? 'Return ' + ITEMS[g.inventory[i]].name : 'Empty bag slot'}" title="${g.inventory[i] ? 'Return ' + ITEMS[g.inventory[i]].name : 'Empty bag slot'}">${g.inventory[i] ? ic(ITEMS[g.inventory[i]].icon, 32) : '·'}${g.inventory[i] ? '<small>×</small>' : ''}</button>`).join('')}<span class="bottom-spacer"></span><span class="keyhint"><kbd>W A S D</kbd> move &nbsp; <kbd>E</kbd> help</span><button class="secondary" id="clipboard">${ic('clipboard')} Patients</button><button class="secondary" id="ask-nurse">${ic('chat')} Ask nurse</button>`;
   $('#bottom')
     .querySelectorAll('[data-slot]')
     .forEach((b) =>
@@ -198,6 +218,7 @@ function refresh() {
   bind('#ask-nurse', 'click', nurse);
   hotspots();
   guide();
+  fitWorld();
 }
 function formatTime(n) {
   return Math.floor(n / 60) + ':' + String(Math.floor(n % 60)).padStart(2, '0');
@@ -208,21 +229,43 @@ function availablePatient() {
 function guide() {
   if (!game) return;
   let p = game.patients.find((p) => p.id === game.wheelchair) || availablePatient();
-  let message = 'Everyone is doing great!';
+  let message = 'Everyone is doing great!',
+    voice = null,
+    key = 'done';
   if (p) {
     const n = game.next(p);
-    if (n.phase === 'exam')
-      message = `${p.name} needs a checkup ${CONDITIONS[p.condition].symptom} • Tap their bed`;
-    else if (n.game === 'transport' || n.game === 'recovery')
+    const hasItem = !n.item || game.inventory.includes(n.item);
+    key = [p.id, p.exam, p.step, game.wheelchair, game.emptyChair, hasItem].join(':');
+    if (n.phase === 'exam') {
+      message = `${p.name} needs a checkup ${ic(CONDITIONS[p.condition].symptom, 26)} • Tap their bed`;
+      voice = 'hint-exam';
+    } else if (n.game === 'transport' || n.game === 'recovery') {
+      const dest = n.game === 'transport' ? 'procedure' : 'recovery';
       message =
         game.wheelchair !== null
-          ? `🦽 Bring ${p.name} to ${n.game === 'transport' ? 'Procedure' : 'Recovery'}`
-          : `🦽 Get the wheelchair and help ${p.name}`;
-    else if (n.item && !game.inventory.includes(n.item))
-      message = `Get ${ITEMS[n.item].icon} ${ITEMS[n.item].name} from Supplies`;
-    else message = `${p.name} is ready • ${n.label}`;
+          ? `${ic('wheelchair', 26)} Bring ${p.name} to ${dest === 'procedure' ? 'Procedure' : 'Recovery'}`
+          : `${ic('wheelchair', 26)} Get the wheelchair and help ${p.name}`;
+      voice = game.wheelchair !== null ? dest : 'wheelchair';
+    } else if (!hasItem) {
+      message = `Get ${ic(ITEMS[n.item].icon, 26)} ${ITEMS[n.item].name} from Supplies`;
+      voice = 'need-' + n.item;
+    } else {
+      message = `${p.name} is ready • ${n.label}`;
+      voice = n.game === 'rest' ? 'hint-rest' : 'hint-patient';
+    }
   }
-  $('#game-overlay').innerHTML = `<div class="walkhint">${message}</div>`;
+  guideVoice = voice;
+  $('#game-overlay').innerHTML =
+    `<div class="walkhint"><span>${message}</span>${voice ? '<button class="say-again" aria-label="Say it again" title="Say it again">' + ic('speaker') + '</button>' : ''}</div>`;
+  bind('#game-overlay .say-again', 'click', () => {
+    audio.unlock();
+    say(guideVoice, 0);
+  });
+  // Speak each new task once, as soon as the clinic is quiet (see tick).
+  if (key !== guideKey) {
+    guideKey = key;
+    guidePending = voice ? { voice, at: clock + 0.9 } : null;
+  }
 }
 function hotspotData() {
   if (!game) return [];
@@ -312,7 +355,7 @@ function station(id) {
       game.care++;
       game.washed = true;
     }
-    toast('🫧 Clean hands! Ready to help.');
+    toast(`${ic('soap')} Clean hands! Ready to help.`);
     refresh();
   }
   if (id === 'chair') {
@@ -325,7 +368,7 @@ function station(id) {
     audio.fx('wheel');
     toast(
       game.emptyChair
-        ? '🦽 Wheelchair ready! Go to the patient who needs a ride.'
+        ? `${ic('wheelchair')} Wheelchair ready! Go to the patient who needs a ride.`
         : 'Wheelchair parked.'
     );
     refresh();
@@ -359,7 +402,7 @@ function careList(p) {
     .join('');
   if (p.exam < c.exam.length)
     return `<ul class="checklist">${exams}<li>♡ Let’s find out what ${p.name} needs.</li></ul>`;
-  return `<ul class="checklist">${exams}${c.steps.map((s, i) => `<li class="${i < p.step ? 'done' : i === p.step ? 'active' : ''}">${i < p.step ? '✓' : '○'} ${s.item ? ITEMS[s.item].icon + ' ' : ''}${s.label}</li>`).join('')}</ul>`;
+  return `<ul class="checklist">${exams}${c.steps.map((s, i) => `<li class="${i < p.step ? 'done' : i === p.step ? 'active' : ''}">${i < p.step ? '✓' : '○'} ${s.item ? ic(ITEMS[s.item].icon, 18) + ' ' : ''}${s.label}</li>`).join('')}</ul>`;
 }
 function patientDialog(p) {
   if (p.state === 'discharged') return;
@@ -375,16 +418,17 @@ function patientDialog(p) {
           ? 'Get supplies'
           : n.label;
   showModal(
-    `${p.name} ${CONDITIONS[p.condition].symptom}`,
-    `<div class="patient-card" style="grid-template-columns:85px 1fr"><canvas id="patient-portrait" width="100" height="130"></canvas><div><p>“${CONDITIONS[p.condition].line}”</p><span style="color:#da9685">${'♥'.repeat(Math.ceil(p.happiness)) + '♡'.repeat(3 - Math.ceil(p.happiness))}</span><small style="margin-left:12px;color:#94a187">${p.personality}</small>${careList(p)}</div></div><div class="modal-actions"><button class="secondary" id="reassure" ${p.reassured ? 'disabled' : ''}>♡ ${p.reassured ? 'Feeling brave!' : 'You’re doing great!'}</button><button class="primary" id="patient-action">${label} →</button></div>`,
+    `${p.name} ${ic(CONDITIONS[p.condition].symptom, 32)}`,
+    `<div class="patient-card" style="grid-template-columns:85px 1fr"><canvas id="patient-portrait" width="100" height="130"></canvas><div><p class="patient-line">“${CONDITIONS[p.condition].line}” <button class="say-again" id="say-symptom" aria-label="Hear ${p.name} again" title="Hear it again">${ic('speaker', 18)}</button></p><span style="color:#da9685">${'♥'.repeat(Math.ceil(p.happiness)) + '♡'.repeat(3 - Math.ceil(p.happiness))}</span><small style="margin-left:12px;color:#94a187">${p.personality}</small>${careList(p)}</div></div><div class="modal-actions"><button class="secondary" id="reassure" ${p.reassured ? 'disabled' : ''}>♡ ${p.reassured ? 'Feeling brave!' : 'You’re doing great!'}</button><button class="primary" id="patient-action">${label} →</button></div>`,
     false,
     'patient'
   );
   person(crisp($('#patient-portrait')), 50, 116, { ...p, scale: 1.12, happy: p.reassured });
   if (!p.spoke) {
-    audio.say(p.condition + '-symptom');
+    say(p.condition + '-symptom');
     p.spoke = true;
   }
+  bind('#say-symptom', 'click', () => say(p.condition + '-symptom', 0));
   bind('#reassure', 'click', () => {
     game.reassure(p);
     audio.say('reassure');
@@ -428,7 +472,7 @@ function board(p) {
   p.state = 'transport';
   audio.say(game.next(p).game === 'transport' ? 'procedure' : 'recovery');
   toast(
-    `🦽 ${p.name} is ready! Tap ${game.next(p).game === 'transport' ? 'Procedure' : 'Recovery'}.`
+    `${ic('wheelchair')} ${p.name} is ready! Tap ${game.next(p).game === 'transport' ? 'Procedure' : 'Recovery'}.`
   );
   refresh();
 }
@@ -463,6 +507,11 @@ function supplies() {
   const needed = new Set(
     game.patients.filter((p) => p.state !== 'discharged').flatMap((p) => game.needs(p))
   );
+  if (modal !== 'supplies') {
+    const missing = [...needed].find((id) => !game.inventory.includes(id));
+    say(missing ? 'need-' + missing : 'supply-cupboard');
+    if (guidePending?.voice.startsWith('need-')) guidePending = null;
+  }
   showModal(
     'The supply cupboard',
     `<p>Match the picture on your patient’s care card. Your bag holds ${settings.capacity} items.</p><div class="supply-grid">${Object.entries(
@@ -470,7 +519,7 @@ function supplies() {
     )
       .map(
         ([id, item]) =>
-          `<button class="supply ${needed.has(id) ? 'needed' : ''}" data-item="${id}"><span>${item.icon}</span>${item.name}<small>${item.symbol} picture ${game.inventory.includes(id) ? ' · In bag ✓' : ''}</small></button>`
+          `<button class="supply ${needed.has(id) ? 'needed' : ''}" data-item="${id}"><span>${ic(item.icon, 46)}</span>${item.name}<small>${item.symbol} picture ${game.inventory.includes(id) ? ' · In bag ✓' : ''}</small></button>`
       )
       .join(
         ''
@@ -484,7 +533,7 @@ function supplies() {
       const id = b.dataset.item;
       if (game.take(id)) {
         audio.fx('pickup');
-        toast(`${ITEMS[id].icon} ${ITEMS[id].name} is in your bag!`);
+        toast(`${ic(ITEMS[id].icon)} ${ITEMS[id].name} is in your bag!`);
         refresh();
         supplies();
       } else {
@@ -511,14 +560,12 @@ function clipboard() {
     true,
     'clipboard'
   );
-  modalRoot
-    .querySelectorAll('[data-portrait]')
-    .forEach((c) =>
-      person(crisp(c), 40, 97, {
-        ...game.patients.find((p) => p.id === Number(c.dataset.portrait)),
-        scale: 0.9,
-      })
-    );
+  modalRoot.querySelectorAll('[data-portrait]').forEach((c) =>
+    person(crisp(c), 40, 97, {
+      ...game.patients.find((p) => p.id === Number(c.dataset.portrait)),
+      scale: 0.9,
+    })
+  );
   modalRoot.querySelectorAll('[data-visit]').forEach((b) =>
     b.addEventListener('click', () => {
       const p = game.patients.find((p) => p.id === Number(b.dataset.visit));
@@ -559,8 +606,8 @@ function nurse() {
       go = () => (game.emptyChair ? goPatient(p) : goStation('chair'));
     }
   } else if (n.item && !game.inventory.includes(n.item)) {
-    words = `${p.name} needs ${ITEMS[n.item].icon} ${ITEMS[n.item].name}. Look for the ${ITEMS[n.item].symbol.toLowerCase()} picture in the supply cupboard.`;
-    voice = 'hint-supply';
+    words = `${p.name} needs ${ic(ITEMS[n.item].icon)} ${ITEMS[n.item].name}. Look for the ${ITEMS[n.item].symbol.toLowerCase()} picture in the supply cupboard.`;
+    voice = 'need-' + n.item;
     go = () => goStation('supplies');
   } else {
     words = `You have everything you need! Visit ${p.name} to ${n.label.toLowerCase()}.`;
@@ -568,13 +615,13 @@ function nurse() {
     go = () => goPatient(p);
   }
   showModal(
-    'Nurse Lily is here! 💬',
+    `Nurse Lily is here! ${ic('chat', 30)}`,
     `<p style="font-size:18px">${words}</p><div class="modal-actions"><button class="secondary" id="repeat-hint">♫ Say it again</button><button class="primary" id="show-way">Show me the way →</button></div>`,
     false,
     'nurse'
   );
-  audio.say(voice);
-  bind('#repeat-hint', 'click', () => audio.say(voice));
+  say(voice, 0);
+  bind('#repeat-hint', 'click', () => say(voice, 0));
   bind('#show-way', 'click', () => {
     dismiss();
     go();
@@ -651,7 +698,7 @@ function showResults() {
   confetti();
   showModal(
     'Clinic complete!',
-    `<div class="result"><div class="big-icon">${i === 5 ? '🏆' : '🌟'}</div><h2>${i === 5 ? 'Our kindness champion!' : 'You made their day!'}</h2><p>${game.helped} / ${game.level.schedule.length} patients feel better, thanks to you.</p><div class="stars">${stars(report.stars)}</div><div class="report-grid"><div><strong>♡</strong>Caring<div class="stars">${stars(report.caring)}</div></div><div><strong>🩺</strong>Doctor skill<div class="stars">${stars(report.skill)}</div></div><div><strong>ϟ</strong>Efficiency<div class="stars">${stars(report.efficiency)}</div></div></div><h3 style="font-size:25px;margin-bottom:0">${report.score.toLocaleString()} points</h3><div class="sticker-reward"><b>${LEVELS[i].sticker}</b>${old ? 'A lovely sticker for your book!' : 'New sticker unlocked!'}</div><div class="modal-actions"><button class="secondary" id="result-menu">Clinic days</button><button class="secondary" id="replay">↻ Replay</button><button class="primary" id="next-level">${i < 5 ? 'Next adventure →' : 'My sticker book ✦'}</button></div></div>`,
+    `<div class="result"><div class="big-icon">${ic(i === 5 ? 'trophy' : 'star', 84)}</div><h2>${i === 5 ? 'Our kindness champion!' : 'You made their day!'}</h2><p>${game.helped} / ${game.level.schedule.length} patients feel better, thanks to you.</p><div class="stars">${stars(report.stars)}</div><div class="report-grid"><div><strong>♡</strong>Caring<div class="stars">${stars(report.caring)}</div></div><div><strong>${ic('stethoscope', 30)}</strong>Doctor skill<div class="stars">${stars(report.skill)}</div></div><div><strong>ϟ</strong>Efficiency<div class="stars">${stars(report.efficiency)}</div></div></div><h3 style="font-size:25px;margin-bottom:0">${report.score.toLocaleString()} points</h3><div class="sticker-reward"><b>${ic(LEVELS[i].sticker, 44)}</b>${old ? 'A lovely sticker for your book!' : 'New sticker unlocked!'}</div><div class="modal-actions"><button class="secondary" id="result-menu">Clinic days</button><button class="secondary" id="replay">↻ Replay</button><button class="primary" id="next-level">${i < 5 ? 'Next adventure →' : 'My sticker book ✦'}</button></div></div>`,
     false,
     'results'
   );
@@ -684,13 +731,22 @@ function options() {
   if (mini) return;
   showModal(
     'Make yourself comfortable',
-    `<label class="settings-row"><span>♫ Acoustic music</span><input type="range" id="opt-music" min="0" max="1" step="0.05" value="${settings.music}"></label><label class="settings-row"><span>✦ Sound effects</span><input type="range" id="opt-sound" min="0" max="1" step="0.05" value="${settings.sound}"></label><label class="settings-row"><span>💬 Spoken encouragement</span><input type="range" id="opt-voice" min="0" max="1" step="0.05" value="${settings.voice}"></label><label class="settings-row"><span>Extra challenge<small>Waiting hearts and a gentle clinic clock</small></span><input type="checkbox" id="opt-patience" ${settings.patience ? 'checked' : ''}></label><label class="settings-row"><span>Less movement<small>Reduce bounces and confetti</small></span><input type="checkbox" id="opt-reduced" ${settings.reduced ? 'checked' : ''}></label><label class="settings-row"><span>Walking speed</span><select id="opt-speed"><option value="0.75">Easy stroll</option><option value="1">Normal</option><option value="1.3">Speedy sneakers</option></select></label><label class="settings-row"><span>Doctor bag<small>Changes when the bag has enough room</small></span><select id="opt-capacity"><option value="1">1 item</option><option value="2">2 items</option><option value="3">3 items</option></select></label><p style="font-size:12px">All procedures use friendly pretend comfort patches. No needles or scary pictures.</p><div class="modal-actions"><button id="test-voice" class="secondary">♫ Hear “Good job!”</button><button id="options-done" class="primary">All set!</button></div>`,
+    `<label class="settings-row"><span>♫ Acoustic music</span><input type="range" id="opt-music" min="0" max="1" step="0.05" value="${settings.music}"></label><label class="settings-row"><span>✦ Sound effects</span><input type="range" id="opt-sound" min="0" max="1" step="0.05" value="${settings.sound}"></label><label class="settings-row"><span>${ic('chat', 18)} Spoken encouragement</span><input type="range" id="opt-voice" min="0" max="1" step="0.05" value="${settings.voice}"></label><label class="settings-row"><span>Extra challenge<small>Waiting hearts and a gentle clinic clock</small></span><input type="checkbox" id="opt-patience" ${settings.patience ? 'checked' : ''}></label><label class="settings-row"><span>Less movement<small>Reduce bounces and confetti</small></span><input type="checkbox" id="opt-reduced" ${settings.reduced ? 'checked' : ''}></label><label class="settings-row"><span>Thumb pad<small>A joystick for walking. Tapping the floor also works.</small></span><input type="checkbox" id="opt-joystick" ${settings.joystick ? 'checked' : ''}></label><label class="settings-row"><span>Walking speed</span><select id="opt-speed"><option value="0.75">Easy stroll</option><option value="1">Normal</option><option value="1.3">Speedy sneakers</option></select></label><label class="settings-row"><span>Doctor bag<small>Changes when the bag has enough room</small></span><select id="opt-capacity"><option value="1">1 item</option><option value="2">2 items</option><option value="3">3 items</option></select></label><p style="font-size:12px">All procedures use friendly pretend comfort patches. No needles or scary pictures.</p><div class="modal-actions"><button id="test-voice" class="secondary">♫ Hear “Good job!”</button><button id="options-done" class="primary">All set!</button></div>`,
     false,
     'settings'
   );
   $('#opt-speed').value = String(settings.speed);
   $('#opt-capacity').value = String(settings.capacity);
-  for (const key of ['music', 'sound', 'voice', 'patience', 'reduced', 'speed', 'capacity'])
+  for (const key of [
+    'music',
+    'sound',
+    'voice',
+    'patience',
+    'reduced',
+    'joystick',
+    'speed',
+    'capacity',
+  ])
     bind('#opt-' + key, 'input', (e) => {
       let value = e.target.type === 'checkbox' ? e.target.checked : Number(e.target.value);
       if (key === 'capacity' && game && game.inventory.length > value) {
@@ -701,6 +757,7 @@ function options() {
       settings[key] = value;
       persist();
       updateSound();
+      if (key === 'joystick' && mode === 'playing') $('#touch-controls').hidden = !value;
       if (game) refresh();
     });
   bind('#test-voice', 'click', () => {
@@ -730,7 +787,13 @@ function closeClinic() {
   bind('#continue-clinic', 'click', dismiss);
   bind('#retry-clinic', 'click', () => startLevel(game.levelIndex));
 }
+function fitWorld() {
+  // Size the clinic so the whole map, HUD and bag fit on one tablet screen.
+  const chrome = ($('#hud').offsetHeight || 0) + ($('#bottom').offsetHeight || 0);
+  document.documentElement.style.setProperty('--play-chrome', chrome + 'px');
+}
 function resize() {
+  fitWorld();
   W = innerWidth <= 600 ? 650 : 1200;
   canvas.dataset.w = W;
   canvas.dataset.h = 760;
@@ -842,12 +905,14 @@ for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture'])
     knob.style.transform = '';
   });
 bind('#touch-interact', 'click', interact);
-bind('#sound', 'click', () => {
+function toggleSound() {
   audio.unlock();
   settings.muted = !settings.muted;
   updateSound();
   persist();
-});
+  if (game) refresh();
+}
+bind('#sound', 'click', toggleSound);
 bind('#settings', 'click', () => {
   audio.unlock();
   options();
@@ -860,9 +925,11 @@ bind('#home', 'click', (e) => {
 });
 document.addEventListener('pointerdown', () => audio.unlock(), { once: true });
 function tick(now) {
-  const dt = Math.min(0.045, (now - last) / 1000);
+  // Cap at 0.1 s so slow tablets keep real time without walking through walls.
+  const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   clock += dt;
+  frame++;
   const t = settings.reduced ? 0 : clock;
   if (game && mode === 'playing' && !modal) {
     const prev = game.patients.length;
@@ -918,6 +985,10 @@ function tick(now) {
         footTime = 0;
       }
     }
+    if (guidePending && clock >= guidePending.at && !audio.busy()) {
+      say(guidePending.voice);
+      guidePending = null;
+    }
     if (!game.path.length && game.destination) {
       const action = game.destination;
       game.destination = null;
@@ -938,11 +1009,14 @@ function tick(now) {
     view.x = settings.reduced ? target : view.x + (target - view.x) * Math.min(1, dt * 8);
     syncHotspots();
   } else view.x = 0;
-  drawHospital(ctx, game, t, view);
+  // The map is hidden on menus and dimmed behind pop-ups: redraw it less often there.
+  if (mode === 'playing' && (!modal || frame % 6 === 0)) drawHospital(ctx, game, t, view);
   const h = $('#hero');
   if (h) hero(h, t);
   requestAnimationFrame(tick);
 }
+$('#settings').innerHTML = ic('gear', 22);
+$('#touch-interact').innerHTML = `${ic('hand', 30)}<small>Help</small>`;
 updateSound();
 switchScreen('menu');
 resize();

@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "python3 tools/serve.py",
-    "build": "python3 tools/build_site.py",
-    "test": "node --test tests/core.test.js",
-    "deploy": "npm run build && npx wrangler deploy"
+    "precache": "python3 tools/build_precache.py",
+    "build": "npm run precache && python3 tools/build_site.py",
+    "test": "node --test tests/core.test.js tests/offline.test.js",
+    "deploy": "npm run build && npx wrangler deploy",
+    "format": "npx --yes prettier@3 --write '*.js' 'tests/*.js' style.css index.html"
   },
   "description": "A cheerful, offline-ready browser hospital game for little doctors. No runtime dependencies."
 }

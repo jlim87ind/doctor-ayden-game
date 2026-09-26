@@ -1,16 +1,17 @@
 import { ITEMS } from './data.js';
-import { round, ellipse, line, text, person, crisp } from './draw.js';
+import { iconSVG } from './icons.js';
+import { round, ellipse, line, text, person, crisp, shade } from './draw.js';
 const INFO = {
-  temperature: ['Temperature time', 'Hold the thermometer on the glowing spot.', '🌡️'],
-  listen: ['Listen with your heart', 'Hold each heart until the circle is full.', '🩺'],
-  inspect: ['A gentle checkup', 'Tap the three stars for a closer look.', '🔎'],
-  clean: ['Clean & sparkle', 'Swipe over all the little marks. Gently does it!', '🧴'],
-  bandage: ['Wrap it with care', 'Drag from 1 to 2 to 3 to 4. Or tap in order.', '🩹'],
-  ice: ['Cool as a cucumber', 'Hold the ice pack on the glowing spot.', '🧊'],
-  medicine: ['Match the care card', 'Choose the same picture, then tap the tray.', '🥄'],
-  rest: ['A cosy little rest', 'Give water, a blanket, and a cuddly friend.', '🧸'],
-  patch: ['A little comfort', 'Tap the stars to place our pretend comfort patch.', '✨'],
-  align: ['Picture perfect', 'Slide the arm picture into its matching outline.', '🦴'],
+  temperature: ['Temperature time', 'Hold the thermometer on the glowing spot.', 'thermometer'],
+  listen: ['Listen with your heart', 'Hold each heart until the circle is full.', 'stethoscope'],
+  inspect: ['A gentle checkup', 'Tap the three stars for a closer look.', 'magnifier'],
+  clean: ['Clean & sparkle', 'Swipe over all the little marks. Gently does it!', 'lotion'],
+  bandage: ['Wrap it with care', 'Drag from 1 to 2 to 3 to 4. Or tap in order.', 'bandage'],
+  ice: ['Cool as a cucumber', 'Hold the ice pack on the glowing spot.', 'ice'],
+  medicine: ['Match the care card', 'Choose the same picture, then tap the tray.', 'spoon'],
+  rest: ['A cosy little rest', 'Give water, a blanket, and a cuddly friend.', 'teddy'],
+  patch: ['A little comfort', 'Tap the stars to place our pretend comfort patch.', 'sparkles'],
+  align: ['Picture perfect', 'Slide the arm picture into its matching outline.', 'bone'],
 };
 export class MiniGame {
   constructor(root, type, p, step, audio, settings, onComplete, onCancel) {
@@ -47,13 +48,14 @@ export class MiniGame {
   }
   render() {
     const [title, instruction, icon] = INFO[this.type];
-    this.root.innerHTML = `<div class="modal-backdrop"><section class="modal wide" role="dialog" aria-modal="true" aria-labelledby="mini-title"><div class="modal-head"><span style="font-size:32px">${icon}</span><div><div class="eyebrow">CARING FOR ${this.p.name.toUpperCase()}</div><h2 id="mini-title">${title}</h2></div><button class="close" aria-label="Close mini-game">×</button></div><p class="mini-subtitle">${instruction}</p><div class="mini-area"><canvas class="mini-art" width="720" height="320"></canvas></div><div class="mini-progress" role="progressbar" aria-label="Treatment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><div class="mini-counter">You’ve got this, Doctor Ayden!</div></section></div>`;
+    this.root.innerHTML = `<div class="modal-backdrop"><section class="modal wide" role="dialog" aria-modal="true" aria-labelledby="mini-title"><div class="modal-head">${iconSVG(icon, { size: 44 })}<div><div class="eyebrow">CARING FOR ${this.p.name.toUpperCase()}</div><h2 id="mini-title">${title}</h2></div><button class="say-again mini-say" aria-label="Say it again" title="Say it again">${iconSVG('speaker', { size: 22 })}</button><button class="close" aria-label="Close mini-game">×</button></div><p class="mini-subtitle">${instruction}</p><div class="mini-area"><canvas class="mini-art" width="720" height="320"></canvas></div><div class="mini-progress" role="progressbar" aria-label="Treatment progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div><div class="mini-counter">You’ve got this, Doctor Ayden!</div></section></div>`;
     this.area = this.root.querySelector('.mini-area');
     this.canvas = this.root.querySelector('canvas');
     this.ctx = crisp(this.canvas);
     this.bar = this.root.querySelector('.mini-progress i');
     this.counter = this.root.querySelector('.mini-counter');
     this.bind(this.root.querySelector('.close'), 'click', () => this.cancel());
+    this.bind(this.root.querySelector('.mini-say'), 'click', () => this.audio.say(this.type));
     this.audio.say(this.type);
     this.build();
     this.paint();
@@ -64,7 +66,7 @@ export class MiniGame {
     b.className = 'mini-target';
     b.style.left = `calc(${x}% - 27px)`;
     b.style.top = `calc(${y}% - 27px)`;
-    b.textContent = label;
+    b.innerHTML = label;
     b.dataset.target = index;
     b.setAttribute(
       'aria-label',
@@ -92,7 +94,11 @@ export class MiniGame {
         const b = this.target(
           x,
           y,
-          this.type === 'temperature' ? '🌡️' : this.type === 'ice' ? '🧊' : '♡',
+          this.type === 'temperature'
+            ? iconSVG('thermometer', { size: 32 })
+            : this.type === 'ice'
+              ? iconSVG('ice', { size: 32 })
+              : '♡',
           null,
           i
         );
@@ -125,7 +131,10 @@ export class MiniGame {
       });
     } else if (['inspect', 'patch', 'rest'].includes(this.type)) {
       this.total = 3;
-      const icons = this.type === 'rest' ? ['🥤', '🧣', '🧸'] : ['✦', '✦', '✦'];
+      const icons =
+        this.type === 'rest'
+          ? ['cup', 'blanket', 'teddy'].map((n) => iconSVG(n, { size: 32 }))
+          : ['✦', '✦', '✦'];
       [
         [31, 50],
         [50, 58],
@@ -189,13 +198,13 @@ export class MiniGame {
       const card = document.createElement('div');
       card.style.cssText =
         'position:absolute;top:18px;left:0;right:0;text-align:center;font-weight:850;font-size:14px';
-      card.innerHTML = `Care card: ${wanted.icon} ${wanted.name}`;
+      card.innerHTML = `Care card: ${iconSVG(wanted.icon, { size: 26 })} ${wanted.name}`;
       this.area.append(card);
       ids.forEach((id, i) => {
         const b = this.target(
           24 + i * 26,
           40,
-          ITEMS[id].icon,
+          iconSVG(ITEMS[id].icon, { size: 34 }),
           (button) => {
             if (this.selected) return;
             if (id === this.step.item) {
@@ -213,7 +222,7 @@ export class MiniGame {
                 ],
                 { duration: 220 }
               );
-              this.counter.textContent = `Look for the ${wanted.symbol.toLowerCase()} picture ${wanted.icon}`;
+              this.counter.innerHTML = `Look for the ${wanted.symbol.toLowerCase()} picture ${iconSVG(wanted.icon, { size: 20 })}`;
             }
           },
           i
@@ -223,7 +232,7 @@ export class MiniGame {
       const tray = this.target(
         50,
         78,
-        '🥣',
+        iconSVG('tray', { size: 36 }),
         (b) => {
           if (this.selected) this.mark(b);
           else this.counter.textContent = 'Choose the matching bottle first.';
@@ -301,6 +310,7 @@ export class MiniGame {
     this.hold = 0;
     this.counter.textContent = `${this.completed} of ${this.total} — lovely work!`;
     this.progress();
+    this.paint();
     if (this.completed >= this.total) this.finish();
   }
   progress() {
@@ -313,7 +323,9 @@ export class MiniGame {
   }
   update(t) {
     if (this.cancelled) return;
-    const dt = Math.min(0.05, (t - this.last) / 1000);
+    // Real elapsed time, so holds take the same time on slow tablets. The cap only guards
+    // against a long pause (e.g. the tab was hidden).
+    const dt = Math.min(0.25, (t - this.last) / 1000);
     this.last = t;
     if (!document.hidden) {
       this.elapsed += dt;
@@ -362,39 +374,53 @@ export class MiniGame {
     const c = this.ctx;
     c.clearRect(0, 0, 720, 320);
     if (['clean', 'bandage', 'ice', 'inspect', 'patch'].includes(this.type)) {
-      ellipse(c, 360, 158, 154, 87, '#f0c9a4');
-      ellipse(c, 360, 164, 140, 77, '#f6d6b9');
-      if (this.type === 'clean' || this.type === 'inspect') {
-        round(c, 333, 135, 50, 34, 14, '#eaa29a');
-        line(
-          c,
-          [
-            [343, 147],
-            [361, 148],
-          ],
-          '#f7c7b7',
-          4
-        );
+      const arm = this.p.condition === 'arm';
+      if (arm) closeArm(c, this.p);
+      else closeKnee(c, this.p);
+      const spotX = 360,
+        spotY = arm ? 160 : 156;
+      if (this.type === 'inspect' || this.type === 'clean') {
+        // The sore spot fades as it is cleaned.
+        c.save();
+        c.globalAlpha = this.type === 'clean' ? 1 - (this.completed / this.total) * 0.75 : 1;
+        if (this.p.condition === 'scrape') scrape(c, spotX, spotY);
+        else if (this.p.condition === 'bruise') bump(c, spotX, spotY);
+        else soreSpot(c, spotX, spotY);
+        c.restore();
+      }
+      if (this.type === 'ice') {
+        bump(c, spotX, spotY);
+        snowflake(c, spotX, spotY, 26, '#ffffffcc');
+      }
+      if (this.type === 'patch') {
+        soreSpot(c, spotX, spotY);
+        // The comfort patch appears a little more with each star.
+        c.save();
+        c.globalAlpha = this.completed / this.total;
+        round(c, spotX - 45, spotY - 27, 90, 53, 13, '#eebfaf', '#d99e8c');
+        text(c, '♥', spotX + 1, spotY + 1, 25, '#fff4e7');
+        c.restore();
       }
       if (this.type === 'bandage') {
+        // Each finished step wraps one more band around the leg or arm.
         for (let i = 0; i < this.completed; i++) {
-          round(c, 245, 108 + i * 23, 218, 26, 8, '#fffdf3', '#e2dfcb');
-          for (let x = 260; x < 450; x += 16)
+          const x = 250 + i * 58;
+          c.save();
+          c.translate(x, 160);
+          c.rotate(-0.12);
+          round(c, -24, -78, 48, 156, 12, '#fffdf3', '#d9d3bb');
+          for (let y = -66; y < 70; y += 14)
             line(
               c,
               [
-                [x, 113 + i * 23],
-                [x + 12, 128 + i * 23],
+                [-18, y],
+                [18, y + 6],
               ],
-              '#ebe8d6',
-              1
+              '#ebe6d2',
+              1.5
             );
+          c.restore();
         }
-      }
-      if (this.type === 'ice') text(c, '❄', 360, 158, 50, '#d09880');
-      if (this.type === 'patch') {
-        round(c, 316, 131, 90, 53, 13, '#eebfaf');
-        text(c, '♥', 361, 159, 25, '#fff4e7');
       }
     } else if (this.type === 'align') {
       round(c, 189, 46, 350, 203, 24, '#d4e2dd');
@@ -429,5 +455,170 @@ export class MiniGame {
     } else if (this.type !== 'medicine') {
       person(c, 360, 285, { ...this.p, scale: 2.65 });
     }
+  }
+}
+
+// Close-up of a knee: shorts, leg, sock and shoe, drawn in the patient's own skin tone.
+function closeKnee(c, p) {
+  const skin = p.skin || '#f0c9a4',
+    edge = shade(skin, -0.28);
+  c.save();
+  c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(150, 100);
+  c.bezierCurveTo(260, 92, 300, 86, 360, 90);
+  c.bezierCurveTo(420, 94, 470, 108, 600, 118);
+  c.lineTo(600, 202);
+  c.bezierCurveTo(470, 212, 420, 228, 360, 228);
+  c.bezierCurveTo(300, 228, 260, 222, 150, 220);
+  c.closePath();
+  c.fillStyle = skin;
+  c.fill();
+  c.strokeStyle = edge;
+  c.lineWidth = 3;
+  c.stroke();
+  // Kneecap.
+  c.globalAlpha = 0.35;
+  ellipse(c, 360, 150, 62, 50, shade(skin, 0.35));
+  c.globalAlpha = 1;
+  c.beginPath();
+  c.arc(360, 158, 58, 0.25 * Math.PI, 0.75 * Math.PI);
+  c.strokeStyle = shade(skin, -0.12);
+  c.lineWidth = 2;
+  c.stroke();
+  // Shorts.
+  round(c, 40, 82, 150, 156, 26, '#5d6485', '#454b66');
+  line(
+    c,
+    [
+      [175, 90],
+      [175, 230],
+    ],
+    '#4b5170',
+    3
+  );
+  // Sock and shoe.
+  round(c, 585, 112, 52, 96, 12, '#fbfaf4', '#d7d4c6');
+  line(
+    c,
+    [
+      [592, 128],
+      [630, 128],
+    ],
+    '#8cc4a8',
+    5
+  );
+  round(c, 624, 104, 70, 118, 30, '#ef9f55', '#c77c38');
+  round(c, 676, 116, 16, 94, 8, '#f7f1e3', '#d8cdb3');
+  c.restore();
+}
+// Close-up of a forearm and hand, with the patient's sleeve.
+function closeArm(c, p) {
+  const skin = p.skin || '#f0c9a4',
+    edge = shade(skin, -0.28),
+    sleeve = p.shirt || '#8bae87';
+  c.save();
+  c.lineJoin = 'round';
+  c.beginPath();
+  c.moveTo(170, 108);
+  c.bezierCurveTo(300, 100, 440, 112, 560, 120);
+  c.lineTo(560, 198);
+  c.bezierCurveTo(440, 206, 300, 220, 170, 214);
+  c.closePath();
+  c.fillStyle = skin;
+  c.fill();
+  c.strokeStyle = edge;
+  c.lineWidth = 3;
+  c.stroke();
+  // Hand with a thumb and four chunky fingers.
+  ellipse(c, 598, 158, 50, 44, skin);
+  c.beginPath();
+  c.ellipse(598, 158, 50, 44, 0, 0, Math.PI * 2);
+  c.strokeStyle = edge;
+  c.lineWidth = 3;
+  c.stroke();
+  for (const [y, len] of [
+    [124, 44],
+    [146, 50],
+    [168, 48],
+    [190, 40],
+  ]) {
+    round(c, 630, y - 10, len + 12, 20, 10, skin, edge);
+  }
+  round(c, 560, 88, 26, 52, 13, skin, edge);
+  c.globalAlpha = 0.5;
+  line(
+    c,
+    [
+      [596, 146],
+      [596, 172],
+    ],
+    shade(skin, -0.15),
+    2
+  );
+  c.globalAlpha = 1;
+  // Sleeve.
+  round(c, 30, 78, 160, 166, 28, sleeve, shade(sleeve, -0.3));
+  line(
+    c,
+    [
+      [170, 92],
+      [170, 230],
+    ],
+    shade(sleeve, -0.18),
+    4
+  );
+  c.restore();
+}
+function scrape(c, x, y) {
+  c.save();
+  c.globalAlpha = 0.8;
+  ellipse(c, x, y, 34, 22, '#eaa29a');
+  c.globalAlpha = 1;
+  for (const [dx, dy, len] of [
+    [-20, -8, 22],
+    [-12, 2, 26],
+    [-4, 10, 18],
+    [4, -12, 20],
+  ])
+    line(
+      c,
+      [
+        [x + dx, y + dy],
+        [x + dx + len, y + dy - 3],
+      ],
+      '#f7c7b7',
+      3
+    );
+  c.restore();
+}
+function bump(c, x, y) {
+  c.save();
+  c.globalAlpha = 0.55;
+  ellipse(c, x, y, 38, 30, '#c9a0c6');
+  c.globalAlpha = 0.6;
+  ellipse(c, x - 8, y - 8, 14, 10, '#fff');
+  c.restore();
+}
+function soreSpot(c, x, y) {
+  c.save();
+  c.globalAlpha = 0.45;
+  ellipse(c, x, y, 44, 30, '#ec9d95');
+  c.globalAlpha = 0.35;
+  ellipse(c, x, y, 26, 17, '#e4827a');
+  c.restore();
+}
+function snowflake(c, x, y, r, color) {
+  for (let i = 0; i < 3; i++) {
+    const a = (i * Math.PI) / 3;
+    line(
+      c,
+      [
+        [x - Math.cos(a) * r, y - Math.sin(a) * r],
+        [x + Math.cos(a) * r, y + Math.sin(a) * r],
+      ],
+      color,
+      4
+    );
   }
 }

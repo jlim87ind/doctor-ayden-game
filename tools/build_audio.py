@@ -47,6 +47,14 @@ PHRASES = {
  'scrape-symptom': 'I fell over while playing.',
  'bruise-symptom': 'Oops! I bumped my knee.',
  'arm-symptom': 'My arm feels a little sore.',
+ 'need-fever': 'Let’s get the fever medicine. Look for the sun picture in the supply cupboard!',
+ 'need-allergy': 'Let’s get the allergy medicine. Look for the flower picture in the supply cupboard!',
+ 'need-cough': 'Let’s get the cough medicine. Look for the cloud picture in the supply cupboard!',
+ 'need-antiseptic': 'Let’s get the cleaning lotion. Look for the purple bottle in the supply cupboard!',
+ 'need-gauze': 'Let’s get a bandage. Look for the bandage picture in the supply cupboard!',
+ 'need-ice': 'Let’s get the ice pack. Look for the ice cube in the supply cupboard!',
+ 'all-helped': 'Everyone is feeling better. You are a wonderful doctor!',
+ 'supply-cupboard': 'Tap the picture that matches your care card.',
 }
 async def main():
  OUT.mkdir(parents=True,exist_ok=True)
