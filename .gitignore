@@ -1,0 +1,8 @@
+tools/source/
+tools/kenney/
+tools/Carefree.mp3
+dist/
+.wrangler/
+tests/screenshots/
+__pycache__/
+.DS_Store
